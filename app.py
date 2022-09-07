@@ -26,12 +26,12 @@ img_lottie_animation = Image.open("images/1.png")
 
 # ---- HEADER SECTION ----
 with st.container():
-    st.subheader("Halo, Ya'ahowu... Saya Linus Gulo :wave:")
+    st.subheader("Halo, Ya'ahowu... Saya Lenoes :wave:")
     st.title("Seorang Data Analytics Pemula dari Kepulauan Nias")
     st.write("Saya senang mencari tahu bagaimana cara membuat dan menganalisa data dengan SQL, Python dan menampilkannya di aplikasi seperti Excel. Saat ini saya sedang menggunakan Python-Streamlit dalam menampilkan Dashboard yang sederhana ini")
     st.write("saya juga memiliki blog [klik disini](https://kalinz.blogspot.com)")
 
-# ---- WHAT I DO ----
+# ---- KEGIATAN SAYA ----
 with st.container():
     st.write("---")
     left_column, right_column = st.columns(2)
@@ -40,12 +40,12 @@ with st.container():
         st.write("##")
         st.write(
             """
-            Saat ini saya sedang bekerja di salah satu institusi perbankan swasta, kegiatan saya yaitu:
-            - Membuat query analisa data untuk menemukan anomali transaksi.
-            - Membuat Web App Data Analytics yang bertujuan untuk efisiensi pekerjaan tim.
-            - Melakukan audit Onsite maupun offsite pada internal perusahaan.
+            Saat ini saya sedang bekerja di salah satu institusi perbankan. Kegiatan saya diantaranya:
+            - Mengolah data mentah atau menganalisa data menjadi sebuah informasi dan dapat mengidentifikasi anomali transaksi.
+            - Membuat Dashboard Data Analytics yang bertujuan untuk efisiensi pekerjaan tim.
+            - Melakukan Audit Onsite maupun Offsite pada internal perusahaan.
             - Membuat Laporan.
-
+            
             Jika kamu ingin melihat profil saya di LinkedIn, silahkan ikuti saya melalui link berikut ini
             """
         )

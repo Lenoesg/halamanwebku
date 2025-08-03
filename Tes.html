@@ -12,19 +12,33 @@
         .timer-box { font-size: 1.5rem; font-weight: bold; color: #d9534f; }
         .soal-item { border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 1rem; }
         .soal-item:last-child { border-bottom: none; }
-        
-        /* --- CSS UNTUK MODAL KUSTOM --- */
+
+        /* --- CSS BARU UNTUK MODAL KUSTOM --- */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.6); display: none;
-            justify-content: center; align-items: center; z-index: 1050;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: none; /* Sembunyikan secara default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
         }
         .modal-content {
-            background-color: white; padding: 30px; border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); text-align: center;
-            width: 90%; max-width: 450px;
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
         }
-        .modal-content p { margin-bottom: 20px; font-size: 1.1rem; }
+        .modal-content p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
         .modal-buttons { display: flex; justify-content: center; gap: 10px; }
     </style>
 </head>
@@ -38,13 +52,11 @@
         <div id="main-content" class="content-box"></div>
     </div>
 
-    <!-- --- HTML UNTUK MODAL KUSTOM --- -->
+    <!-- --- HTML BARU UNTUK MODAL KUSTOM --- -->
     <div id="custom-alert" class="modal-overlay">
         <div class="modal-content">
             <p id="custom-alert-message"></p>
-            <div class="modal-buttons">
-                <!-- Tombol akan ditambahkan oleh JavaScript -->
-            </div>
+            <button class="btn btn-primary" onclick="hideCustomAlert()">OK</button>
         </div>
     </div>
 
@@ -69,19 +81,10 @@
                 tampilkanHalaman(indeksHalamanSekarang);
             }).getSoal();
         });
-        
-        // --- FUNGSI MODAL KUSTOM YANG DIPERBARUI ---
-        function showCustomAlert(message, buttons) {
-            document.getElementById('custom-alert-message').innerHTML = message;
-            const buttonContainer = document.querySelector('#custom-alert .modal-buttons');
-            buttonContainer.innerHTML = ''; // Kosongkan tombol lama
-            buttons.forEach(btn => {
-                const buttonEl = document.createElement('button');
-                buttonEl.className = btn.class;
-                buttonEl.innerText = btn.text;
-                buttonEl.onclick = btn.handler;
-                buttonContainer.appendChild(buttonEl);
-            });
+
+        // --- FUNGSI BARU UNTUK MODAL KUSTOM ---
+        function showCustomAlert(message) {
+            document.getElementById('custom-alert-message').innerText = message;
             document.getElementById('custom-alert').style.display = 'flex';
         }
 
@@ -92,10 +95,12 @@
         function tampilkanHalaman(index) {
             const namaHalaman = alurHalaman[index];
             const container = document.getElementById('main-content');
+            
             const progress = Math.round((index / (alurHalaman.length - 1)) * 100);
             const progressBar = document.getElementById('progress-bar');
             progressBar.style.width = progress + '%';
             progressBar.innerText = progress + '%';
+
             clearInterval(timerInterval);
 
             if (namaHalaman === 'halaman_selamat_datang') container.innerHTML = renderSelamatDatang();
@@ -113,7 +118,7 @@
             }
         }
 
-        function goToNextPage(force = false) {
+        function goToNextPage() {
             const halamanSekarang = alurHalaman[indeksHalamanSekarang];
 
             if (halamanSekarang === 'halaman_data_diri') {
@@ -121,21 +126,27 @@
                 const posisi = document.getElementById('input-posisi').value;
                 const tanggalTes = document.getElementById('input-tanggalTes').value;
                 if (!nama || !posisi || !tanggalTes) {
-                    showCustomAlert('Nama Lengkap, Posisi, dan Tanggal Tes wajib diisi.', [{ text: 'OK', class: 'btn btn-primary', handler: hideCustomAlert }]);
+                    showCustomAlert('Nama Lengkap, Posisi, dan Tanggal Tes wajib diisi.');
                     return;
                 }
-                const dataDiri = { nama, nik: document.getElementById('input-nik').value, posisi, tanggalTes };
-                google.script.run.withFailureHandler(err => showCustomAlert("Gagal menyimpan data diri: " + err.message, [{ text: 'OK', class: 'btn btn-primary', handler: hideCustomAlert }])).simpanDataDiri(token, dataDiri);
+                const dataDiri = {
+                    nama: nama,
+                    nik: document.getElementById('input-nik').value,
+                    posisi: posisi,
+                    tanggalTes: tanggalTes
+                };
+                google.script.run
+                    .withFailureHandler(err => showCustomAlert("Gagal menyimpan data diri: " + err.message))
+                    .simpanDataDiri(token, dataDiri);
+
                 google.script.run.updateStatus(token, 'Sedang Mengerjakan');
             }
-            
+
             if (halamanSekarang.startsWith('soal_')) {
                 const jenisTes = halamanSekarang.split('_')[1].toUpperCase();
-                const hasilValidasi = kumpulkanSemuaJawaban(jenisTes, force);
-                if (!hasilValidasi.lanjut) return; // Jika validasi gagal atau menunggu konfirmasi, berhenti.
-                if (hasilValidasi.jawaban.length > 0) {
-                    google.script.run.simpanJawaban(token, hasilValidasi.jawaban);
-                }
+                const jawabanArray = kumpulkanSemuaJawaban(jenisTes);
+                if (!jawabanArray) return;
+                google.script.run.simpanJawaban(token, jawabanArray);
             }
 
             if (indeksHalamanSekarang < alurHalaman.length - 1) {
@@ -143,71 +154,221 @@
                 tampilkanHalaman(indeksHalamanSekarang);
             }
         }
-        
-        // --- FUNGSI RENDER HTML (Sama seperti sebelumnya) ---
-        function renderSelamatDatang() { return `<div class="text-center"><h2>Psikotes Online</h2><p class="text-muted">PT Bank ABC</p><hr class="my-4"><h4>Selamat datang, <strong>${dataPeserta.NamaPeserta}</strong>!</h4><p>Silakan ikuti petunjuk dengan seksama di setiap halaman tes ini.</p><p class="small">Token Akses Anda: <code>${dataPeserta.TokenUnik}</code></p><div class="alert alert-warning mt-4" role="alert"><strong>Perhatian:</strong> Token ini hanya berlaku untuk satu kali pengerjaan. Jangan memuat ulang (refresh) halaman selama tes berlangsung.</div><div class="navigation-area"><button class="btn btn-primary btn-lg" onclick="goToNextPage()">Mulai Tes</button></div></div>`; }
-        function renderDataDiri() { return `<h3>Data Diri Peserta</h3><div class="mb-3"><label for="input-nama" class="form-label">Nama Lengkap*</label><input type="text" class="form-control" id="input-nama" value="${dataPeserta.NamaPeserta}" required></div><div class="mb-3"><label for="input-nik" class="form-label">NIK</label><input type="text" class="form-control" id="input-nik"></div><div class="mb-3"><label for="input-posisi" class="form-label">Posisi*</label><input type="text" class="form-control" id="input-posisi" required></div><div class="mb-3"><label for="input-tanggalTes" class="form-label">Tanggal Tes*</label><input type="date" class="form-control" id="input-tanggalTes" required></div><div class="navigation-area"><button class="btn btn-primary" onclick="goToNextPage()">Lanjut</button></div>`; }
-        function renderInstruksi(jenisTes) { let petunjuk = ''; if (jenisTes === 'DISC') petunjuk = `<p>Tugas Anda adalah memilih satu pernyataan yang paling menggambarkan diri Anda (M) dan satu yang paling tidak menggambarkan diri Anda (TM) untuk setiap nomor. Waktu pengerjaan <strong>15 menit</strong>.</p>`; else if (jenisTes === 'VAK') petunjuk = `<p>Pilih hanya 1 (satu) jawaban yang paling mewakili diri Anda. Tidak ada jawaban benar atau salah. Waktu pengerjaan <strong>15 menit</strong>.</p>`; else if (jenisTes === 'IQ') petunjuk = `<p>Pilih 1 (satu) jawaban yang menurut Anda paling benar. Waktu pengerjaan <strong>30 menit</strong>.</p>`; return `<h3>Instruksi Tes ${jenisTes}</h3><hr>${petunjuk}<p class="text-center fw-bold">SELAMAT MENGERJAKAN</p><div class="navigation-area"><button class="btn btn-primary" onclick="goToNextPage()">Mulai Tes ${jenisTes}</button></div>`; }
-        function renderHalamanSoal(jenisTes) { let html = `<div class="d-flex justify-content-between align-items-center mb-3"><h4 class="mb-0">Tes ${jenisTes}</h4><div id="timer" class="timer-box">--:--</div></div><div id="question-content">`; const soalTes = semuaSoal.filter(s => s[0] === jenisTes); soalTes.forEach((soal, index) => { html += `<div class="soal-item">`; if (jenisTes === 'DISC') html += renderDISC(soal, index); else if (jenisTes === 'IQ') html += renderIQ(soal, index); else if (jenisTes === 'VAK') html += renderVAK(soal, index); html += `</div>`; }); html += `</div><div class="navigation-area"><button class="btn btn-primary" onclick="goToNextPage()">Selesai & Lanjut</button></div>`; return html; }
-        function renderSelesai() { return `<div class="text-center"><h2>Tes Telah Selesai</h2><p class="lead">Terima kasih telah menyelesaikan seluruh rangkaian psikotes.</p><p>Jawaban Anda telah berhasil direkam.</p></div>`; }
-        
-        // --- Fungsi Logika Lainnya ---
-        function aturTimerUntukTes(jenisTes) { let durasiDetik; if (jenisTes === 'DISC') durasiDetik = 15 * 60; else if (jenisTes === 'IQ') durasiDetik = 30 * 60; else if (jenisTes === 'VAK') durasiDetik = 15 * 60; else return; clearInterval(timerInterval); const timerDisplay = document.getElementById('timer'); timerInterval = setInterval(() => { const menit = Math.floor(durasiDetik / 60); let detik = durasiDetik % 60; detik = detik < 10 ? '0' + detik : detik; if (timerDisplay) timerDisplay.textContent = `${menit}:${detik}`; if (--durasiDetik < 0) { clearInterval(timerInterval); if (timerDisplay) timerDisplay.textContent = "WAKTU HABIS"; goToNextPage(true); } }, 1000); }
-        
-        // --- FUNGSI VALIDASI JAWABAN YANG DIPERBARUI ---
-        function kumpulkanSemuaJawaban(jenisTes, forceSubmit = false) {
-            const jawabanArray = [];
-            const soalKosong = [];
-            const soalTes = semuaSoal.filter(s => s[0] === jenisTes);
 
+        function renderSelamatDatang() {
+            return `<div class="text-center">
+                        <h2>Psikotes Online</h2>
+                        <p class="text-muted">PT Bank ABC</p>
+                        
+                        <hr class="my-4">
+
+                        <h4>Selamat datang, <strong>${dataPeserta.NamaPeserta}</strong>!</h4>
+                        <p>Silakan ikuti petunjuk dengan seksama di setiap halaman tes ini.</p>
+                        <p class="small">Token Akses Anda: <code>${dataPeserta.TokenUnik}</code></p>
+                        
+                        <div class="alert alert-warning mt-4" role="alert">
+                            <strong>Perhatian:</strong> Token ini hanya berlaku untuk satu kali pengerjaan. Jangan memuat ulang (refresh) halaman selama tes berlangsung.
+                        </div>
+
+                        <div class="navigation-area">
+                            <button class="btn btn-primary btn-lg" onclick="goToNextPage()">Mulai Tes</button>
+                        </div>
+                    </div>`;
+        }
+
+        function renderDataDiri() {
+            return `<h3>Data Diri Peserta</h3>
+                <div class="mb-3"><label>Nama Lengkap*</label><input type="text" class="form-control" id="input-nama" value="${dataPeserta.NamaPeserta}" required></div>
+                <div class="mb-3"><label>NIK (bisa dikosongkan jika tidak ada)</label><input type="text" class="form-control" id="input-nik"></div>
+                <div class="mb-3"><label>Posisi*</label><input type="text" class="form-control" id="input-posisi" required></div>
+                <div class="mb-3"><label>Tanggal Tes*</label><input type="date" class="form-control" id="input-tanggalTes" required></div>
+                <div class="navigation-area">
+                    <button class="btn btn-primary" onclick="goToNextPage()">Lanjut</button>
+                </div>`;
+        }
+
+        function renderInstruksi(jenisTes) {
+            let petunjuk = '';
+            let contohHtml = '';
+
+            if (jenisTes === 'DISC') {
+                petunjuk = `<p>Tugas Anda adalah memilih satu pernyataan yang paling menggambarkan diri Anda (M) dan satu yang paling tidak menggambarkan diri Anda (TM) untuk setiap nomor. Waktu pengerjaan <strong>15 menit</strong>.</p>`;
+                contohHtml = `
+                    <h6 class="mt-4">Contoh:</h6>
+                    <p class="text-muted small">Perhatikan contoh di bawah. Anda harus memilih satu tombol di kolom 'M' dan satu tombol di kolom 'TM'.</p>
+                    <table class="table table-bordered table-sm">
+                        <thead>
+                            <tr class="table-light"><th>Deskripsi</th><th class="text-center" style="width: 50px;">M</th><th class="text-center" style="width: 50px;">TM</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>A. Saya seorang yang ceria</td><td class="text-center"><input type="radio" disabled></td><td class="text-center"><input type="radio" checked disabled></td></tr>
+                            <tr><td>B. Saya suka memimpin</td><td class="text-center"><input type="radio" checked disabled></td><td class="text-center"><input type="radio" disabled></td></tr>
+                            <tr><td>C. Saya seorang pendengar yang baik</td><td class="text-center"><input type="radio" disabled></td><td class="text-center"><input type="radio" disabled></td></tr>
+                            <tr><td>D. Saya bekerja sesuai aturan</td><td class="text-center"><input type="radio" disabled></td><td class="text-center"><input type="radio" disabled></td></tr>
+                        </tbody>
+                    </table>
+                    <p class="text-muted small">Pada contoh ini, peserta merasa <strong>paling mirip</strong> dengan "suka memimpin" dan <strong>paling tidak mirip</strong> dengan "seorang yang ceria".</p>
+                `;
+            } else if (jenisTes === 'VAK') {
+                petunjuk = `<p>Pilih hanya 1 (satu) jawaban yang paling mewakili diri Anda. Tidak ada jawaban benar atau salah. Waktu pengerjaan <strong>15 menit</strong>.</p>`;
+                contohHtml = `
+                    <h6 class="mt-4">Contoh:</h6>
+                    <div class="p-3 border rounded">
+                        <p class="mb-2"><strong>Ketika mempelajari hal baru, saya lebih suka...</strong></p>
+                        <div class="form-check"><input class="form-check-input" type="radio" disabled><label class="form-check-label">Membaca buku</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" checked disabled><label class="form-check-label">Mendengarkan penjelasan</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" disabled><label class="form-check-label">Mencobanya langsung</label></div>
+                    </div>
+                `;
+            } else if (jenisTes === 'IQ') {
+                petunjuk = `<p>Pilih 1 (satu) jawaban yang menurut Anda paling benar. Waktu pengerjaan <strong>30 menit</strong>.</p>`;
+                contohHtml = `
+                    <h6 class="mt-4">Contoh:</h6>
+                    <div class="p-3 border rounded">
+                        <p class="mb-2"><strong>Jika Anda mengatur ulang kata "RUMAH", maka Anda akan mendapat nama sebuah...</strong></p>
+                        <div class="form-check"><input class="form-check-input" type="radio" disabled><label class="form-check-label">Hewan</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" disabled><label class="form-check-label">Kota</label></div>
+                        <div class="form-check"><input class="form-check-input" type="radio" checked disabled><label class="form-check-label">Bangunan</label></div>
+                    </div>
+                `;
+            }
+
+            return `<h3>Instruksi Tes ${jenisTes}</h3>
+                    <hr>
+                    ${petunjuk}
+                    ${contohHtml} 
+                    <p class="fw-bold text-center mt-4">Selamat Mengerjakan</p>
+                    <div class="navigation-area">
+                        <button class="btn btn-primary" onclick="goToNextPage()">Mulai Tes</button>
+                    </div>`;
+        }
+
+        function renderHalamanSoal(jenisTes) {
+            let html = `<div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="mb-0">Tes ${jenisTes}</h4>
+                            <div id="timer" class="timer-box">--:--</div>
+                        </div>
+                        <div id="question-content">`;
+            const soalTes = semuaSoal.filter(s => s[0] === jenisTes);
+            soalTes.forEach((soal, index) => {
+                html += `<div class="soal-item">`;
+                if (jenisTes === 'DISC') html += renderDISC(soal, index);
+                else if (jenisTes === 'VAK') html += renderVAK(soal, index);
+                else if (jenisTes === 'IQ') html += renderIQ(soal, index);
+                html += `</div>`;
+            });
+            html += `</div>
+                     <div class="navigation-area">
+                        <button class="btn btn-primary" onclick="goToNextPage()">Selesai & Lanjut</button>
+                     </div>`;
+            return html;
+        }
+
+        function renderSelesai() {
+            return `<div class="text-center">
+                        <h2>Tes Telah Selesai</h2>
+                        <p class="lead">Terima kasih telah menyelesaikan seluruh rangkaian tes.</p>
+                        <p>Jawaban Anda telah tersimpan.</p>
+                    </div>`;
+        }
+
+        function renderDISC(soalData, index) {
+            const opsi = { A: soalData[4], B: soalData[6], C: soalData[8], D: soalData[10] };
+            let html = `<h6>Soal ${index + 1}</h6>
+                        <table class="table table-bordered table-sm">
+                            <thead><tr class="table-light"><th>Deskripsi</th><th class="text-center">M</th><th class="text-center">TM</th></tr></thead><tbody>`;
+            Object.entries(opsi).forEach(([key, desc]) => {
+                html += `<tr>
+                            <td>${desc}</td>
+                            <td class="text-center"><input type="radio" name="paling_mirip_${index}" value="${key}"></td>
+                            <td class="text-center"><input type="radio" name="tidak_mirip_${index}" value="${key}"></td>
+                         </tr>`;
+            });
+            html += `</tbody></table>`;
+            return html;
+        }
+
+        function renderVAK(soalData, index) {
+            const pertanyaanTeks = soalData[2];
+            const opsi = { A: soalData[4], B: soalData[6], C: soalData[8] };
+            let html = `<p><strong>${index + 1}.</strong> ${pertanyaanTeks}</p><div class="options-area">`;
+            for (const key in opsi) {
+                if (opsi[key]) {
+                    html += `<div class="form-check"><input class="form-check-input" type="radio" name="pilihan_${index}" id="opsi_${index}_${key}" value="${key}"><label class="form-check-label" for="opsi_${index}_${key}">${opsi[key]}</label></div>`;
+                }
+            }
+            return html + `</div>`;
+        }
+
+        function renderIQ(soalData, index) {
+            const pertanyaanTeks = soalData[2];
+            const pertanyaanGambar = soalData[3];
+            const opsi = { A: { teks: soalData[4], gambar: soalData[5] }, B: { teks: soalData[6], gambar: soalData[7] }, C: { teks: soalData[8], gambar: soalData[9] }, D: { teks: soalData[10], gambar: soalData[11] }, E: { teks: soalData[12], gambar: soalData[13] } };
+            let html = `<p><strong>${index + 1}.</strong> ${pertanyaanTeks}</p>`;
+            if (pertanyaanGambar) {
+                html += `<img src="${pertanyaanGambar}" class="img-fluid my-2 border rounded" alt="Gambar Soal">`;
+            }
+            html += `<div class="options-area">`;
+            for (const key in opsi) {
+                if (opsi[key].teks || opsi[key].gambar) {
+                    html += `<div class="form-check"><input class="form-check-input" type="radio" name="pilihan_${index}" id="opsi_${index}_${key}" value="${key}"><label class="form-check-label" for="opsi_${index}_${key}">${opsi[key].teks || ''}${opsi[key].gambar ? `<br><img src="${opsi[key].gambar}" style="max-height: 80px;" class="img-thumbnail" alt="Opsi ${key}">` : ''}</label></div>`;
+                }
+            }
+            return html + `</div>`;
+        }
+
+        function aturTimerUntukTes(jenisTes) {
+            let durasiDetik;
+            if (jenisTes === 'DISC') durasiDetik = 15 * 60;
+            else if (jenisTes === 'IQ') durasiDetik = 30 * 60;
+            else if (jenisTes === 'VAK') durasiDetik = 15 * 60;
+            else return;
+
+            clearInterval(timerInterval);
+            const timerDisplay = document.getElementById('timer');
+            timerInterval = setInterval(() => {
+                const menit = Math.floor(durasiDetik / 60);
+                let detik = durasiDetik % 60;
+                detik = detik < 10 ? '0' + detik : detik;
+                if (timerDisplay) timerDisplay.textContent = `${menit}:${detik}`;
+                if (--durasiDetik < 0) {
+                    clearInterval(timerInterval);
+                    if (timerDisplay) timerDisplay.textContent = "WAKTU HABIS";
+                    goToNextPage();
+                }
+            }, 1000);
+        }
+
+        function kumpulkanSemuaJawaban(jenisTes) {
+            const jawabanArray = [];
+            const soalTes = semuaSoal.filter(s => s[0] === jenisTes);
             for (let i = 0; i < soalTes.length; i++) {
                 const soal = soalTes[i];
                 let jawaban = null;
-                let dijawab = true;
-
                 if (jenisTes === 'DISC') {
                     const palingMirip = document.querySelector(`input[name="paling_mirip_${i}"]:checked`);
                     const tidakMirip = document.querySelector(`input[name="tidak_mirip_${i}"]:checked`);
                     if (!palingMirip || !tidakMirip) {
-                        dijawab = false;
-                    } else if (palingMirip.value === tidakMirip.value) {
-                        showCustomAlert(`Jawaban "Mirip" dan "Tidak Mirip" tidak boleh sama untuk soal nomor ${i + 1}.`, [{ text: 'OK', class: 'btn btn-primary', handler: hideCustomAlert }]);
-                        return { lanjut: false, jawaban: [] };
-                    } else {
-                        jawaban = `M:${palingMirip.value};TM:${tidakMirip.value}`;
+                        showCustomAlert(`Harap lengkapi jawaban untuk soal nomor ${i + 1}.`);
+                        return null;
                     }
-                } else { // VAK dan IQ
+                    if (palingMirip.value === tidakMirip.value) {
+                        showCustomAlert(`Jawaban M dan TM tidak boleh sama untuk soal nomor ${i + 1}.`);
+                        return null;
+                    }
+                    jawaban = `M:${palingMirip.value};TM:${tidakMirip.value}`;
+                } else {
                     const pilihan = document.querySelector(`input[name="pilihan_${i}"]:checked`);
                     if (!pilihan) {
-                        dijawab = false;
-                    } else {
-                        jawaban = pilihan.value;
+                        showCustomAlert(`Harap jawab soal nomor ${i + 1}.`);
+                        return null;
                     }
+                    jawaban = pilihan.value;
                 }
-
-                if (dijawab) {
-                    jawabanArray.push({ jenisTes: jenisTes, nomorSoal: soal[1], jawaban: jawaban });
-                } else {
-                    soalKosong.push(i + 1);
-                }
+                jawabanArray.push({ jenisTes: jenisTes, nomorSoal: soal[1], jawaban: jawaban });
             }
-
-            if (soalKosong.length > 0 && !forceSubmit) {
-                const message = `Anda belum menjawab soal nomor: <br><strong>${soalKosong.join(', ')}</strong>.<br><br>Apakah Anda yakin ingin melanjutkan?`;
-                const buttons = [
-                    { text: 'Kembali Mengerjakan', class: 'btn btn-secondary', handler: hideCustomAlert },
-                    { text: 'Ya, Lanjut Saja', class: 'btn btn-danger', handler: () => { hideCustomAlert(); goToNextPage(true); } }
-                ];
-                showCustomAlert(message, buttons);
-                return { lanjut: false, jawaban: [] }; // Berhenti, tunggu keputusan user
-            }
-
-            return { lanjut: true, jawaban: jawabanArray }; // Semua valid atau user memaksa lanjut
+            return jawabanArray;
         }
-        
-        function renderDISC(soalData, index) { const opsi = { A: soalData[4], B: soalData[6], C: soalData[8], D: soalData[10] }; let html = `<h6>Soal ${index + 1}</h6><table class="table table-bordered table-sm"><thead><tr class="table-light"><th>Deskripsi</th><th class="text-center" style="width: 50px;">M</th><th class="text-center" style="width: 50px;">TM</th></tr></thead><tbody>`; for (const key in opsi) { if (opsi[key]) html += `<tr><td>${opsi[key]}</td><td class="text-center"><input class="form-check-input" type="radio" name="paling_mirip_${index}" value="${key}"></td><td class="text-center"><input class="form-check-input" type="radio" name="tidak_mirip_${index}" value="${key}"></td></tr>`; } return html + `</tbody></table>`; }
-        function renderIQ(soalData, index) { const pertanyaanTeks = soalData[2]; const pertanyaanGambar = soalData[3]; const opsi = { A: { teks: soalData[4], gambar: soalData[5] }, B: { teks: soalData[6], gambar: soalData[7] }, C: { teks: soalData[8], gambar: soalData[9] }, D: { teks: soalData[10], gambar: soalData[11] }, E: { teks: soalData[12], gambar: soalData[13] } }; let html = `<p><strong>${index + 1}.</strong> ${pertanyaanTeks}</p>`; if (pertanyaanGambar) html += `<img src="${pertanyaanGambar}" class="img-fluid my-2 border rounded" alt="Gambar Soal">`; html += `<div class="options-area">`; for (const key in opsi) { if (opsi[key].teks || opsi[key].gambar) { html += `<div class="form-check"><input class="form-check-input" type="radio" name="pilihan_${index}" id="opsi_${index}_${key}" value="${key}"><label class="form-check-label" for="opsi_${index}_${key}">${opsi[key].teks || ''}${opsi[key].gambar ? `<br><img src="${opsi[key].gambar}" style="max-height: 80px;" class="img-thumbnail" alt="Opsi ${key}">` : ''}</label></div>`; } } return html + `</div>`; }
-        function renderVAK(soalData, index) { const pertanyaanTeks = soalData[2]; const opsi = { A: soalData[4], B: soalData[6], C: soalData[8] }; let html = `<p><strong>${index + 1}.</strong> ${pertanyaanTeks}</p><div class="options-area">`; for (const key in opsi) { if (opsi[key]) html += `<div class="form-check"><input class="form-check-input" type="radio" name="pilihan_${index}" id="opsi_${index}_${key}" value="${key}"><label class="form-check-label" for="opsi_${index}_${key}">${opsi[key]}</label></div>`; } return html + `</div>`; }
     </script>
 </body>
 </html>
